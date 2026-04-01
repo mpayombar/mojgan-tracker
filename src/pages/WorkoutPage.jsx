@@ -282,11 +282,71 @@ export default function WorkoutPage() {
 
       {/* Rest day */}
       {!workout && (
-        <div className="card p-8 text-center">
-          <div className="text-4xl mb-3">🌿</div>
-          <div className="text-stone-600 font-medium mb-1">Rest day</div>
-          <div className="text-sm text-stone-400">Walks + morning routine are your focus. Use the arrows to find a workout day.</div>
-        </div>
+        <>
+          <div className="bg-stone-50 border border-stone-100 rounded-2xl p-4 text-center">
+            <div className="text-stone-600 font-medium mb-1">Rest day</div>
+            <div className="text-sm text-stone-400">
+              {isFutureDay ? 'Walks + morning routine planned.' : 'Walked? Did something extra? Log it below.'}
+            </div>
+          </div>
+
+          {!isFutureDay && (
+            <div className="card p-5">
+              <h2 className="text-xs font-medium text-stone-400 uppercase tracking-widest mb-1">Bonus activity</h2>
+              <p className="text-xs text-stone-400 mb-4">Log anything extra you did today</p>
+              {customExercises.map((ex, i) => (
+                <ExerciseRow
+                  key={ex.id}
+                  exercise={ex}
+                  value={logs[`custom_${i}`]}
+                  onChange={val => setLogs(prev => ({ ...prev, [`custom_${i}`]: val }))}
+                  isCustom={true}
+                  onRemove={() => handleRemoveCustom(ex.id)}
+                />
+              ))}
+              {!showAddPanel && (
+                <button
+                  onClick={() => setShowAddPanel(true)}
+                  className="w-full mt-3 flex items-center justify-center gap-2 py-3 border-2 border-dashed border-stone-200 rounded-xl text-sm text-stone-400 hover:border-terracotta-200 hover:text-terracotta-400 transition-colors"
+                >
+                  <Plus size={15} />
+                  Log an exercise
+                </button>
+              )}
+            </div>
+          )}
+
+          {!isFutureDay && showAddPanel && (
+            <AddExercisePanel
+              onAdd={handleAddExercise}
+              onClose={() => setShowAddPanel(false)}
+              savedExercises={savedExercises}
+            />
+          )}
+
+          {!isFutureDay && customExercises.length > 0 && (
+            <>
+              <div className="card p-5">
+                <label className="text-xs font-medium text-stone-400 uppercase tracking-widest block mb-3">Notes</label>
+                <textarea
+                  className="input-field resize-none"
+                  rows={3}
+                  placeholder="How did it feel? Anything to note..."
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-3">
+                <button onClick={handleSave} className="btn-secondary flex-1">
+                  {saved ? 'Saved ✓' : 'Save'}
+                </button>
+                <button onClick={handleComplete} className="btn-success flex-1">
+                  {log?.workout_done ? 'Update ✓' : 'Mark complete'}
+                </button>
+              </div>
+            </>
+          )}
+        </>
       )}
 
       {/* Workout day */}
