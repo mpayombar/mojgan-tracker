@@ -1,20 +1,16 @@
 import { useState } from 'react'
-import { format, isMonday, isWednesday, isFriday } from 'date-fns'
-import { Sun, Wind, Footprints, Moon, ChevronRight, Check } from 'lucide-react'
+import { format, isMonday, isWednesday, isFriday, addDays, subDays, isToday, isFuture } from 'date-fns'
+import { Sun, Wind, Footprints, Moon, ChevronRight, Check, ChevronLeft } from 'lucide-react'
 import { useDay } from '../lib/useData'
 import { useNavigate } from 'react-router-dom'
 
-const today = new Date()
-
-function CheckPill({ icon: Icon, label, sublabel, checked, onToggle, color = 'sage' }) {
+function CheckPill({ icon: Icon, label, sublabel, checked, onToggle, disabled }) {
   return (
     <button
-      onClick={onToggle}
+      onClick={disabled ? undefined : onToggle}
       className={`w-full flex items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-200 text-left
-        ${checked
-          ? 'bg-sage-50 border-sage-400 shadow-sm'
-          : 'bg-white border-stone-100 hover:border-stone-200'
-        }`}
+        ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
+        ${checked ? 'bg-sage-50 border-sage-400 shadow-sm' : 'bg-white border-stone-100 hover:border-stone-200'}`}
     >
       <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors
         ${checked ? 'bg-sage-400 text-white' : 'bg-stone-100 text-stone-400'}`}>
@@ -29,6 +25,25 @@ function CheckPill({ icon: Icon, label, sublabel, checked, onToggle, color = 'sa
         {checked && <Check size={11} className="text-white" strokeWidth={3} />}
       </div>
     </button>
+  )
+}
+
+function DateNav({ date, onPrev, onNext }) {
+  return (
+    <div className="flex items-center justify-between">
+      <button onClick={onPrev} className="p-2 hover:bg-stone-100 rounded-xl transition-colors">
+        <ChevronLeft size={18} className="text-stone-400" />
+      </button>
+      <div className="text-center">
+        <div className="text-xs text-stone-400 font-medium uppercase tracking-wide">
+          {isToday(date) ? 'Today' : isFuture(date) ? 'Upcoming' : 'Past'}
+        </div>
+        <div className="text-sm font-medium text-stone-700">{format(date, 'EEEE, MMMM d')}</div>
+      </div>
+      <button onClick={onNext} className="p-2 hover:bg-stone-100 rounded-xl transition-colors">
+        <ChevronRight size={18} className="text-stone-400" />
+      </button>
+    </div>
   )
 }
 
@@ -59,12 +74,14 @@ function ScoreRing({ score, total }) {
 }
 
 export default function TodayPage() {
-  const { log, loading, toggle } = useDay(today)
+  const [date, setDate] = useState(new Date())
+  const { log, loading, toggle } = useDay(date)
   const navigate = useNavigate()
-  const isWorkoutDay = isMonday(today) || isWednesday(today) || isFriday(today)
 
-  const dayName = format(today, 'EEEE')
-  const dateStr = format(today, 'MMMM d')
+  const isWorkoutDay = isMonday(date) || isWednesday(date) || isFriday(date)
+  const isFutureDay = isFuture(date) && !isToday(date)
+
+  const workoutType = isMonday(date) ? 'Lower body' : isWednesday(date) ? 'Upper body' : isFriday(date) ? 'Full body + power' : null
 
   const habits = [
     { key: 'yoga', icon: Wind, label: '15–20 min yoga & breathing', sublabel: 'Open App · before work, before phone' },
@@ -75,11 +92,8 @@ export default function TodayPage() {
 
   const checked = habits.filter(h => log?.[h.key]).length
   const workoutDone = log?.workout_done
-
   const total = isWorkoutDay ? habits.length + 1 : habits.length
   const score = checked + (isWorkoutDay && workoutDone ? 1 : 0)
-
-  const workoutType = isMonday(today) ? 'Lower body' : isWednesday(today) ? 'Upper body' : 'Full body + power'
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-64">
@@ -88,28 +102,44 @@ export default function TodayPage() {
   )
 
   return (
-    <div className="page-enter space-y-6">
-      {/* Header */}
-      <div className="pt-2">
-        <p className="text-sm text-stone-400 font-body">{dateStr}</p>
-        <h1 className="text-3xl font-display text-stone-800 mt-0.5">{dayName}</h1>
+    <div className="page-enter space-y-5">
+      <div className="pt-2 space-y-3">
+        <DateNav date={date} onPrev={() => setDate(d => subDays(d, 1))} onNext={() => setDate(d => addDays(d, 1))} />
       </div>
 
-      {/* Daily score */}
-      <div className="card p-5 flex items-center gap-5">
-        <ScoreRing score={score} total={total} />
-        <div>
-          <div className="text-sm text-stone-400 mb-0.5">Today's score</div>
-          <div className="text-2xl font-display text-stone-800">{score} <span className="text-stone-300 text-lg">/ {total}</span></div>
-          <div className="text-xs text-stone-400 mt-1">
-            {score === total ? '✦ Perfect day' : score >= total * 0.75 ? 'Almost there' : score >= total * 0.5 ? 'Good progress' : 'Keep going'}
+      {isFutureDay && (
+        <div className="bg-stone-50 border border-stone-100 rounded-2xl p-3.5 text-center">
+          <div className="text-sm text-stone-500">
+            {isWorkoutDay
+              ? `${workoutType} day — preview only, log when the day arrives`
+              : 'Rest day — walks + morning routine'}
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Score — past and today only */}
+      {!isFutureDay && (
+        <div className="card p-5 flex items-center gap-5">
+          <ScoreRing score={score} total={total} />
+          <div>
+            <div className="text-sm text-stone-400 mb-0.5">
+              {isToday(date) ? "Today's score" : format(date, 'MMM d') + ' score'}
+            </div>
+            <div className="text-2xl font-display text-stone-800">
+              {score} <span className="text-stone-300 text-lg">/ {total}</span>
+            </div>
+            <div className="text-xs text-stone-400 mt-1">
+              {score === total ? '✦ Perfect day' : score >= total * 0.75 ? 'Almost there' : score >= total * 0.5 ? 'Good progress' : 'Keep going'}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Habits */}
       <div>
-        <h2 className="text-xs font-medium text-stone-400 uppercase tracking-widest mb-3">Daily habits</h2>
+        <h2 className="text-xs font-medium text-stone-400 uppercase tracking-widest mb-3">
+          {isFutureDay ? 'Planned habits' : 'Daily habits'}
+        </h2>
         <div className="space-y-2.5">
           {habits.map(h => (
             <CheckPill
@@ -119,6 +149,7 @@ export default function TodayPage() {
               sublabel={h.sublabel}
               checked={!!log?.[h.key]}
               onToggle={() => toggle(h.key)}
+              disabled={isFutureDay}
             />
           ))}
         </div>
@@ -129,7 +160,7 @@ export default function TodayPage() {
         <div>
           <h2 className="text-xs font-medium text-stone-400 uppercase tracking-widest mb-3">Workout</h2>
           <button
-            onClick={() => navigate('/workout')}
+            onClick={() => navigate('/workout', { state: { date: format(date, 'yyyy-MM-dd') } })}
             className={`w-full p-4 rounded-2xl border-2 flex items-center gap-3 transition-all
               ${workoutDone ? 'bg-sage-50 border-sage-400' : 'bg-white border-stone-100 hover:border-stone-200'}`}
           >
@@ -142,7 +173,7 @@ export default function TodayPage() {
                 {workoutType}
               </div>
               <div className="text-xs text-stone-400 mt-0.5">
-                {workoutDone ? 'Session logged ✓' : 'Tap to log workout'}
+                {isFutureDay ? 'Tap to preview' : workoutDone ? 'Session logged ✓' : 'Tap to log workout'}
               </div>
             </div>
             <ChevronRight size={16} className="text-stone-300" />
@@ -152,18 +183,20 @@ export default function TodayPage() {
 
       {!isWorkoutDay && (
         <div className="card p-4 text-center">
-          <div className="text-stone-400 text-sm">Rest day — walks + morning routine are your job today</div>
+          <div className="text-stone-400 text-sm">Rest day — walks + morning routine are your focus</div>
         </div>
       )}
 
-      {/* Magnesium reminder */}
-      <div className="bg-terracotta-50 border border-terracotta-100 rounded-2xl p-4 flex items-start gap-3">
-        <span className="text-lg">💊</span>
-        <div>
-          <div className="text-sm font-medium text-terracotta-700">9:15pm · Magnesium reminder</div>
-          <div className="text-xs text-terracotta-500 mt-0.5">3 tabs of Metagenics Mag Glycinate · 45–60 min before sleep</div>
+      {/* Magnesium reminder — today only */}
+      {isToday(date) && (
+        <div className="bg-terracotta-50 border border-terracotta-100 rounded-2xl p-4 flex items-start gap-3">
+          <span className="text-lg">💊</span>
+          <div>
+            <div className="text-sm font-medium text-terracotta-700">9:15pm · Magnesium reminder</div>
+            <div className="text-xs text-terracotta-500 mt-0.5">3 tabs of Metagenics Mag Glycinate · 45–60 min before sleep</div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

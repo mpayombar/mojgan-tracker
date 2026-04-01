@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react'
-import { format, isMonday, isWednesday, isFriday } from 'date-fns'
-import { Check, ChevronDown, ChevronUp } from 'lucide-react'
+import { format, isMonday, isWednesday, isFriday, parseISO, isFuture, isToday } from 'date-fns'
+import { Check, ChevronLeft } from 'lucide-react'
 import { useDay } from '../lib/useData'
 import { WORKOUT_DAYS } from '../lib/workouts'
-
-const today = new Date()
+import { useLocation, useNavigate } from 'react-router-dom'
 
 function ExerciseRow({ exercise, value, onChange }) {
   return (
@@ -30,12 +29,17 @@ function ExerciseRow({ exercise, value, onChange }) {
 }
 
 export default function WorkoutPage() {
-  const { log, loading, save } = useDay(today)
+  const location = useLocation()
+  const navigate = useNavigate()
+  const date = location.state?.date ? parseISO(location.state.date) : new Date()
+  const isFutureDay = isFuture(date) && !isToday(date)
+
+  const { log, loading, save } = useDay(date)
   const [logs, setLogs] = useState({})
   const [notes, setNotes] = useState('')
   const [saved, setSaved] = useState(false)
 
-  const dayKey = isMonday(today) ? 'Mon' : isWednesday(today) ? 'Wed' : isFriday(today) ? 'Fri' : null
+  const dayKey = isMonday(date) ? 'Mon' : isWednesday(date) ? 'Wed' : isFriday(date) ? 'Fri' : null
   const workout = dayKey ? WORKOUT_DAYS[dayKey] : null
 
   useEffect(() => {
@@ -76,13 +80,12 @@ export default function WorkoutPage() {
 
   if (!workout) return (
     <div className="page-enter">
-      <div className="pt-2 mb-6">
-        <p className="text-sm text-stone-400">{format(today, 'MMMM d')}</p>
-        <h1 className="text-3xl font-display text-stone-800 mt-0.5">Rest day</h1>
-      </div>
+      <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-stone-400 text-sm mb-6 hover:text-stone-600">
+        <ChevronLeft size={16} /> Back
+      </button>
       <div className="card p-8 text-center">
         <div className="text-4xl mb-3">🌿</div>
-        <div className="text-stone-600 font-medium mb-1">No workout today</div>
+        <div className="text-stone-600 font-medium mb-1">No workout on {format(date, 'EEEE')}</div>
         <div className="text-sm text-stone-400">Walks + morning routine are your focus. Recovery is training.</div>
       </div>
     </div>
@@ -91,12 +94,21 @@ export default function WorkoutPage() {
   return (
     <div className="page-enter space-y-5">
       <div className="pt-2">
-        <p className="text-sm text-stone-400">{format(today, 'MMMM d · EEEE')}</p>
+        <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-stone-400 text-sm mb-3 hover:text-stone-600">
+          <ChevronLeft size={16} /> Back
+        </button>
+        <p className="text-sm text-stone-400">{format(date, 'MMMM d · EEEE')}</p>
         <h1 className="text-3xl font-display text-stone-800 mt-0.5">{workout.type}</h1>
         <p className="text-xs text-stone-400 mt-1.5">{workout.warmup}</p>
       </div>
 
-      {log?.workout_done && (
+      {isFutureDay && (
+        <div className="bg-stone-50 border border-stone-100 rounded-2xl p-3.5 text-center">
+          <div className="text-sm text-stone-500">Preview mode — come back on {format(date, 'EEEE')} to log this workout</div>
+        </div>
+      )}
+
+      {!isFutureDay && log?.workout_done && (
         <div className="bg-sage-50 border border-sage-200 rounded-2xl p-3.5 flex items-center gap-2">
           <div className="w-6 h-6 bg-sage-400 rounded-full flex items-center justify-center">
             <Check size={13} className="text-white" strokeWidth={3} />
@@ -107,38 +119,44 @@ export default function WorkoutPage() {
 
       <div className="card p-5">
         <h2 className="text-xs font-medium text-stone-400 uppercase tracking-widest mb-1">Exercises</h2>
-        <p className="text-xs text-stone-400 mb-4">Log what you actually did — weight × reps, or just notes</p>
+        <p className="text-xs text-stone-400 mb-4">
+          {isFutureDay ? 'Your exercises for this session' : 'Log what you actually did — weight × reps, or just notes'}
+        </p>
         {workout.exercises.map((ex, i) => (
           <ExerciseRow
             key={i}
             exercise={ex}
             value={logs[i]}
-            onChange={val => setLogs(prev => ({ ...prev, [i]: val }))}
+            onChange={isFutureDay ? () => {} : val => setLogs(prev => ({ ...prev, [i]: val }))}
           />
         ))}
       </div>
 
-      <div className="card p-5">
-        <label className="text-xs font-medium text-stone-400 uppercase tracking-widest block mb-3">
-          Session notes
-        </label>
-        <textarea
-          className="input-field resize-none"
-          rows={3}
-          placeholder="How did it feel? Any pain? Energy level? Anything to flag..."
-          value={notes}
-          onChange={e => setNotes(e.target.value)}
-        />
-      </div>
+      {!isFutureDay && (
+        <>
+          <div className="card p-5">
+            <label className="text-xs font-medium text-stone-400 uppercase tracking-widest block mb-3">
+              Session notes
+            </label>
+            <textarea
+              className="input-field resize-none"
+              rows={3}
+              placeholder="How did it feel? Any pain? Energy level? Anything to flag..."
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+            />
+          </div>
 
-      <div className="flex gap-3">
-        <button onClick={() => handleSave(false)} className="btn-secondary flex-1">
-          {saved ? 'Saved ✓' : 'Save draft'}
-        </button>
-        <button onClick={handleComplete} className="btn-success flex-1">
-          {log?.workout_done ? 'Update ✓' : 'Mark complete'}
-        </button>
-      </div>
+          <div className="flex gap-3">
+            <button onClick={() => handleSave(false)} className="btn-secondary flex-1">
+              {saved ? 'Saved ✓' : 'Save draft'}
+            </button>
+            <button onClick={handleComplete} className="btn-success flex-1">
+              {log?.workout_done ? 'Update ✓' : 'Mark complete'}
+            </button>
+          </div>
+        </>
+      )}
 
       <div className="bg-stone-50 rounded-xl p-4 text-center">
         <p className="text-xs text-stone-400 font-medium uppercase tracking-wide mb-1">Progression rule</p>
