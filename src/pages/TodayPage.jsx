@@ -4,72 +4,52 @@ import { Sun, Wind, Footprints, Moon, ChevronRight, Check, ChevronLeft } from 'l
 import { useDay } from '../lib/useData'
 import { useNavigate } from 'react-router-dom'
 
-function CheckPill({ icon: Icon, label, sublabel, checked, onToggle, disabled }) {
-  return (
-    <button
-      onClick={disabled ? undefined : onToggle}
-      className={`w-full flex items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-200 text-left
-        ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
-        ${checked ? 'bg-sage-50 border-sage-400 shadow-sm' : 'bg-white border-stone-100 hover:border-stone-200'}`}
-    >
-      <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors
-        ${checked ? 'bg-sage-400 text-white' : 'bg-stone-100 text-stone-400'}`}>
-        <Icon size={18} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className={`text-sm font-medium ${checked ? 'text-sage-800' : 'text-stone-700'}`}>{label}</div>
-        {sublabel && <div className="text-xs text-stone-400 mt-0.5">{sublabel}</div>}
-      </div>
-      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all
-        ${checked ? 'bg-sage-400 border-sage-400' : 'border-stone-200'}`}>
-        {checked && <Check size={11} className="text-white" strokeWidth={3} />}
-      </div>
-    </button>
-  )
-}
+const W = (opacity) => `rgba(255,255,255,${opacity})`
 
 function DateNav({ date, onPrev, onNext }) {
   return (
-    <div className="flex items-center justify-between">
-      <button onClick={onPrev} className="p-2 hover:bg-stone-100 rounded-xl transition-colors">
-        <ChevronLeft size={18} className="text-stone-400" />
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <button onClick={onPrev} style={{ padding: '8px', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+        <ChevronLeft size={18} style={{ stroke: W(0.45) }} strokeWidth={1.5} />
       </button>
-      <div className="text-center">
-        <div className="text-xs text-stone-400 font-medium uppercase tracking-wide">
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: '9px', color: W(0.4), letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: '2px' }}>
           {isToday(date) ? 'Today' : isFuture(date) ? 'Upcoming' : 'Past'}
         </div>
-        <div className="text-sm font-medium text-stone-700">{format(date, 'EEEE, MMMM d')}</div>
+        <div style={{ fontSize: '13px', fontWeight: 500, color: W(0.88) }}>{format(date, 'EEEE, MMMM d')}</div>
       </div>
-      <button onClick={onNext} className="p-2 hover:bg-stone-100 rounded-xl transition-colors">
-        <ChevronRight size={18} className="text-stone-400" />
+      <button onClick={onNext} style={{ padding: '8px', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+        <ChevronRight size={18} style={{ stroke: W(0.45) }} strokeWidth={1.5} />
       </button>
     </div>
   )
 }
 
-function ScoreRing({ score, total }) {
-  const pct = total === 0 ? 0 : Math.round((score / total) * 100)
-  const r = 28
-  const circ = 2 * Math.PI * r
-  const dash = (pct / 100) * circ
-
+function HabitPill({ icon: Icon, label, sublabel, checked, onToggle, disabled }) {
   return (
-    <div className="relative w-20 h-20 flex items-center justify-center">
-      <svg className="absolute inset-0 -rotate-90" width="80" height="80">
-        <circle cx="40" cy="40" r={r} fill="none" stroke="#e7e5e4" strokeWidth="5" />
-        <circle
-          cx="40" cy="40" r={r} fill="none"
-          stroke={pct >= 75 ? '#5fa45f' : pct >= 50 ? '#e07040' : '#a8a29e'}
-          strokeWidth="5"
-          strokeDasharray={`${dash} ${circ}`}
-          strokeLinecap="round"
-          style={{ transition: 'stroke-dasharray 0.6s ease' }}
-        />
-      </svg>
-      <div className="text-center">
-        <div className="text-xl font-display font-bold text-stone-800">{pct}%</div>
+    <button
+      onClick={disabled ? undefined : onToggle}
+      style={{
+        width: '100%', display: 'flex', alignItems: 'center', gap: '10px',
+        padding: '10px 0', background: 'transparent', border: 'none',
+        borderBottom: `1px solid ${W(0.07)}`, cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.4 : 1, textAlign: 'left'
+      }}
+    >
+      <div style={{ width: '2px', height: '32px', borderRadius: '1px', background: checked ? W(0.85) : W(0.15), flexShrink: 0 }} />
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: '12px', fontWeight: 500, color: W(0.9) }}>{label}</div>
+        <div style={{ fontSize: '10px', color: W(0.35), marginTop: '1px' }}>{sublabel}</div>
       </div>
-    </div>
+      <div style={{
+        width: '18px', height: '18px', borderRadius: '50%', flexShrink: 0,
+        border: `1.5px solid ${checked ? 'transparent' : W(0.2)}`,
+        background: checked ? W(0.88) : 'transparent',
+        display: 'flex', alignItems: 'center', justifyContent: 'center'
+      }}>
+        {checked && <Check size={10} style={{ stroke: '#5a4030' }} strokeWidth={3} />}
+      </div>
+    </button>
   )
 }
 
@@ -80,7 +60,6 @@ export default function TodayPage() {
 
   const isWorkoutDay = isMonday(date) || isWednesday(date) || isFriday(date)
   const isFutureDay = isFuture(date) && !isToday(date)
-
   const workoutType = isMonday(date) ? 'Lower body' : isWednesday(date) ? 'Upper body' : isFriday(date) ? 'Full body + power' : null
 
   const habits = [
@@ -95,108 +74,108 @@ export default function TodayPage() {
   const total = isWorkoutDay ? habits.length + 1 : habits.length
   const score = checked + (isWorkoutDay && workoutDone ? 1 : 0)
 
+  const bgClass = isWorkoutDay ? 'bg-workout' : 'bg-rest'
+
   if (loading) return (
-    <div className="flex items-center justify-center min-h-64">
-      <div className="w-6 h-6 border-2 border-stone-300 border-t-stone-600 rounded-full animate-spin" />
+    <div className={bgClass} style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: '20px', height: '20px', border: `2px solid ${W(0.2)}`, borderTopColor: W(0.7), borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
     </div>
   )
 
   return (
-    <div className="page-enter space-y-5">
-      <div className="pt-2 space-y-3">
+    <div className={`${bgClass} page-enter`}>
+      {/* Hero */}
+      <div style={{ position: 'relative', height: '220px', overflow: 'hidden' }}>
+        <img
+          src="https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&q=80&fit=crop&crop=center"
+          alt=""
+          style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 25%', opacity: 0.15, mixBlendMode: 'overlay', filter: 'saturate(0.2)' }}
+          onError={e => e.target.style.display = 'none'}
+        />
+        <div style={{ position: 'absolute', top: '12px', right: '14px', background: W(0.12), border: `1px solid ${W(0.2)}`, borderRadius: '20px', padding: '4px 10px', fontSize: '8px', color: W(0.75), letterSpacing: '.06em' }}>
+          {isWorkoutDay ? workoutType : 'Rest day'}
+        </div>
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '16px 20px 20px' }}>
+          <div style={{ fontSize: '8px', color: W(0.4), letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: '4px' }}>
+            {format(date, 'EEEE · MMMM d')}
+          </div>
+          <div className="font-serif-italic" style={{ fontSize: '30px', color: W(0.92), lineHeight: 1.1, marginBottom: '4px' }}>
+            Good morning.
+          </div>
+          <div style={{ fontSize: '10px', color: W(0.4) }}>
+            {isWorkoutDay ? `${workoutType} day` : 'Habits are your focus today'}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ padding: '20px 20px 0' }}>
         <DateNav date={date} onPrev={() => setDate(d => subDays(d, 1))} onNext={() => setDate(d => addDays(d, 1))} />
-      </div>
 
-      {isFutureDay && (
-        <div className="bg-stone-50 border border-stone-100 rounded-2xl p-3.5 text-center">
-          <div className="text-sm text-stone-500">
-            {isWorkoutDay
-              ? `${workoutType} day — preview only, log when the day arrives`
-              : 'Rest day — walks + morning routine'}
+        {/* Score */}
+        {!isFutureDay && (
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px', margin: '18px 0 16px', paddingBottom: '16px', borderBottom: `1px solid ${W(0.1)}` }}>
+            <div style={{ fontSize: '42px', fontWeight: 300, color: W(0.92), lineHeight: 1 }}>{score}</div>
+            <div style={{ fontSize: '16px', color: W(0.25) }}>/ {total}</div>
+            <div style={{ fontSize: '10px', color: W(0.38), alignSelf: 'center', marginLeft: '3px' }}>done today</div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Score — past and today only */}
-      {!isFutureDay && (
-        <div className="card p-5 flex items-center gap-5">
-          <ScoreRing score={score} total={total} />
-          <div>
-            <div className="text-sm text-stone-400 mb-0.5">
-              {isToday(date) ? "Today's score" : format(date, 'MMM d') + ' score'}
-            </div>
-            <div className="text-2xl font-display text-stone-800">
-              {score} <span className="text-stone-300 text-lg">/ {total}</span>
-            </div>
-            <div className="text-xs text-stone-400 mt-1">
-              {score === total ? '✦ Perfect day' : score >= total * 0.75 ? 'Almost there' : score >= total * 0.5 ? 'Good progress' : 'Keep going'}
-            </div>
+        {isFutureDay && (
+          <div style={{ margin: '16px 0', padding: '12px 14px', background: W(0.07), borderRadius: '12px', fontSize: '12px', color: W(0.5), textAlign: 'center' }}>
+            {isWorkoutDay ? `${workoutType} day — preview only` : 'Rest day — walks + morning routine'}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Habits */}
-      <div>
-        <h2 className="text-xs font-medium text-stone-400 uppercase tracking-widest mb-3">
-          {isFutureDay ? 'Planned habits' : 'Daily habits'}
-        </h2>
-        <div className="space-y-2.5">
-          {habits.map(h => (
-            <CheckPill
-              key={h.key}
-              icon={h.icon}
-              label={h.label}
-              sublabel={h.sublabel}
-              checked={!!log?.[h.key]}
-              onToggle={() => toggle(h.key)}
-              disabled={isFutureDay}
-            />
-          ))}
-        </div>
-      </div>
+        {/* Habits */}
+        <div style={{ fontSize: '8px', letterSpacing: '.1em', textTransform: 'uppercase', color: W(0.3), marginBottom: '4px' }}>Daily habits</div>
+        {habits.map(h => (
+          <HabitPill
+            key={h.key}
+            icon={h.icon}
+            label={h.label}
+            sublabel={h.sublabel}
+            checked={!!log?.[h.key]}
+            onToggle={() => toggle(h.key)}
+            disabled={isFutureDay}
+          />
+        ))}
 
-      {/* Workout */}
-      {isWorkoutDay && (
-        <div>
-          <h2 className="text-xs font-medium text-stone-400 uppercase tracking-widest mb-3">Workout</h2>
+        {/* Workout link */}
+        {isWorkoutDay && (
           <button
             onClick={() => navigate('/workout', { state: { date: format(date, 'yyyy-MM-dd') } })}
-            className={`w-full p-4 rounded-2xl border-2 flex items-center gap-3 transition-all
-              ${workoutDone ? 'bg-sage-50 border-sage-400' : 'bg-white border-stone-100 hover:border-stone-200'}`}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: '10px',
+              padding: '11px 13px', marginTop: '12px', border: `1px solid ${workoutDone ? W(0.3) : W(0.12)}`,
+              borderRadius: '14px', background: workoutDone ? W(0.12) : W(0.06),
+              cursor: 'pointer', textAlign: 'left'
+            }}
           >
-            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0
-              ${workoutDone ? 'bg-sage-400 text-white' : 'bg-stone-100 text-stone-400'}`}>
-              {workoutDone ? <Check size={18} /> : <span className="text-lg">🏋️</span>}
+            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: workoutDone ? W(0.85) : W(0.12), flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {workoutDone
+                ? <Check size={13} style={{ stroke: '#5a4030' }} strokeWidth={3} />
+                : <span style={{ fontSize: '13px' }}>+</span>}
             </div>
-            <div className="flex-1 text-left">
-              <div className={`text-sm font-medium ${workoutDone ? 'text-sage-800' : 'text-stone-700'}`}>
-                {workoutType}
-              </div>
-              <div className="text-xs text-stone-400 mt-0.5">
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '12px', fontWeight: 500, color: W(0.9) }}>{workoutType}</div>
+              <div style={{ fontSize: '10px', color: W(0.35), marginTop: '1px' }}>
                 {isFutureDay ? 'Tap to preview' : workoutDone ? 'Session logged ✓' : 'Tap to log workout'}
               </div>
             </div>
-            <ChevronRight size={16} className="text-stone-300" />
+            <ChevronRight size={14} style={{ stroke: W(0.25) }} strokeWidth={1.5} />
           </button>
-        </div>
-      )}
+        )}
 
-      {!isWorkoutDay && (
-        <div className="card p-4 text-center">
-          <div className="text-stone-400 text-sm">Rest day — walks + morning routine are your focus</div>
-        </div>
-      )}
-
-      {/* Magnesium reminder — today only */}
-      {isToday(date) && (
-        <div className="bg-terracotta-50 border border-terracotta-100 rounded-2xl p-4 flex items-start gap-3">
-          <span className="text-lg">💊</span>
-          <div>
-            <div className="text-sm font-medium text-terracotta-700">9:15pm · Magnesium reminder</div>
-            <div className="text-xs text-terracotta-500 mt-0.5">3 tabs of Metagenics Mag Glycinate · 45–60 min before sleep</div>
+        {/* Magnesium */}
+        {isToday(date) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 12px', marginTop: '10px', marginBottom: '8px', background: W(0.06), border: `1px solid ${W(0.08)}`, borderRadius: '10px' }}>
+            <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: W(0.4), flexShrink: 0 }} />
+            <div style={{ fontSize: '10px', color: W(0.42) }}>9:15pm · Magnesium · 3 tabs</div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }

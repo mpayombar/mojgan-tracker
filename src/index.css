@@ -2,100 +2,84 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
+
 @layer base {
   body {
-    @apply bg-stone-50 text-stone-800 font-body antialiased;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
     min-height: 100vh;
-  }
-
-  h1, h2, h3 {
-    @apply font-display;
   }
 }
 
 @layer components {
-  .card {
-    @apply bg-white rounded-2xl border border-stone-100 shadow-sm;
-  }
-
   .btn-primary {
-    @apply bg-stone-800 text-white rounded-xl px-5 py-2.5 text-sm font-medium
-           hover:bg-stone-700 active:scale-95 transition-all duration-150;
+    @apply rounded-xl px-5 py-2.5 text-sm font-medium active:scale-95 transition-all duration-150;
+    background: rgba(255,255,255,0.88);
+    color: #4a3020;
   }
-
   .btn-secondary {
-    @apply bg-stone-100 text-stone-700 rounded-xl px-5 py-2.5 text-sm font-medium
-           hover:bg-stone-200 active:scale-95 transition-all duration-150;
+    @apply rounded-xl px-5 py-2.5 text-sm font-medium active:scale-95 transition-all duration-150;
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.6);
+    border: 1px solid rgba(255,255,255,0.12);
   }
-
   .btn-success {
-    @apply bg-sage-500 text-white rounded-xl px-5 py-2.5 text-sm font-medium
-           hover:bg-sage-600 active:scale-95 transition-all duration-150;
+    @apply rounded-xl px-5 py-2.5 text-sm font-medium active:scale-95 transition-all duration-150;
+    background: rgba(255,255,255,0.88);
+    color: #4a3020;
   }
-
-  .check-pill {
-    @apply flex items-center gap-3 p-3.5 rounded-xl border border-stone-150
-           cursor-pointer transition-all duration-200 select-none;
-  }
-
-  .check-pill.checked {
-    @apply bg-sage-50 border-sage-300;
-  }
-
-  .nav-tab {
-    @apply px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150
-           text-stone-500 hover:text-stone-800 hover:bg-stone-100;
-  }
-
-  .nav-tab.active {
-    @apply bg-stone-800 text-white;
-  }
-
   .input-field {
-    @apply w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-lg
-           focus:outline-none focus:ring-2 focus:ring-sage-300 focus:border-transparent
-           placeholder:text-stone-300 transition-all;
+    @apply w-full px-3 py-2 text-sm rounded-lg transition-all;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.85);
+    font-family: 'DM Sans', sans-serif;
   }
-
-  .stat-card {
-    @apply card p-4 flex flex-col gap-1;
+  .input-field::placeholder { color: rgba(255,255,255,0.28); }
+  .input-field:focus { outline: none; border-color: rgba(255,255,255,0.25); }
+  .card {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1);
+    @apply rounded-2xl;
   }
-
-  .tag {
-    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium;
+  .font-serif-italic {
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-style: italic;
   }
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+.bg-rest {
+  background: linear-gradient(145deg, #6b7d62 0%, #8c7260 45%, #7a6455 100%);
+  min-height: 100vh;
+}
+.bg-workout {
+  background: linear-gradient(145deg, #a07060 0%, #7a6055 45%, #5a6850 100%);
+  min-height: 100vh;
+}
+.bg-trends {
+  background: linear-gradient(145deg, #6e7a60 0%, #907060 50%, #7a6555 100%);
+  min-height: 100vh;
+}
+.bg-history {
+  background: linear-gradient(145deg, #7a7060 0%, #956858 50%, #6a7058 100%);
+  min-height: 100vh;
+}
+.bg-blend {
+  background: linear-gradient(145deg, #6b7d62 0%, #8c7260 45%, #7a6455 100%);
+  min-height: 100vh;
 }
 
-/* Smooth page transitions */
-.page-enter {
-  animation: fadeUp 0.3s ease forwards;
-}
+.text-w-primary { color: rgba(255,255,255,0.90); }
+.text-w-secondary { color: rgba(255,255,255,0.45); }
+.text-w-muted { color: rgba(255,255,255,0.28); }
+.border-w { border-color: rgba(255,255,255,0.1); }
+.border-w-strong { border-color: rgba(255,255,255,0.2); }
 
+.page-enter { animation: fadeUp 0.25s ease forwards; }
 @keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 4px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #d6d3d1;
-  border-radius: 2px;
-}
+::-webkit-scrollbar { width: 0px; }

@@ -1,47 +1,18 @@
 import { useMemo } from 'react'
-import { subDays, subWeeks, startOfWeek, endOfWeek, format, eachWeekOfInterval } from 'date-fns'
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
+import { subWeeks, endOfWeek, format, eachWeekOfInterval } from 'date-fns'
 import { useRange } from '../lib/useData'
 
 const today = new Date()
 const start = subWeeks(today, 8)
+const W = (o) => `rgba(255,255,255,${o})`
 
-function SectionTitle({ children }) {
-  return <h2 className="text-xs font-medium text-stone-400 uppercase tracking-widest mb-3">{children}</h2>
-}
-
-function StatRow({ label, value, sub, color = 'stone' }) {
-  const colors = {
-    sage: 'text-sage-600',
-    terracotta: 'text-terracotta-600',
-    stone: 'text-stone-800',
-  }
+function StatBox({ value, label }) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-stone-50 last:border-0">
-      <div>
-        <div className="text-sm text-stone-700">{label}</div>
-        {sub && <div className="text-xs text-stone-400 mt-0.5">{sub}</div>}
-      </div>
-      <div className={`text-lg font-display font-medium ${colors[color]}`}>{value}</div>
+    <div style={{ background: W(0.07), border: `1px solid ${W(0.09)}`, borderRadius: '12px', padding: '12px 14px' }}>
+      <div style={{ fontSize: '24px', fontWeight: 300, color: W(0.9) }}>{value}</div>
+      <div style={{ fontSize: '8px', color: W(0.32), textTransform: 'uppercase', letterSpacing: '.06em', marginTop: '2px' }}>{label}</div>
     </div>
   )
-}
-
-const CustomTooltip = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-white border border-stone-100 rounded-xl px-3 py-2 shadow-md text-xs">
-        <div className="text-stone-400 mb-1">{label}</div>
-        {payload.map((p, i) => (
-          <div key={i} className="font-medium" style={{ color: p.color }}>
-            {p.name}: {typeof p.value === 'number' ? p.value.toFixed(0) : p.value}
-            {p.name === 'Habit score' ? '%' : ''}
-          </div>
-        ))}
-      </div>
-    )
-  }
-  return null
 }
 
 export default function TrendsPage() {
@@ -51,161 +22,85 @@ export default function TrendsPage() {
     const weeks = eachWeekOfInterval({ start, end: today }, { weekStartsOn: 1 })
     return weeks.map(weekStart => {
       const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 })
-      const weekLogs = logs.filter(l => {
-        const d = new Date(l.date)
-        return d >= weekStart && d <= weekEnd
-      })
-      const days = weekLogs.length
-      if (days === 0) return null
-
+      const weekLogs = logs.filter(l => { const d = new Date(l.date); return d >= weekStart && d <= weekEnd })
+      if (!weekLogs.length) return null
       const yoga = weekLogs.filter(l => l.yoga).length
       const sun = weekLogs.filter(l => l.sunlight).length
       const midday = weekLogs.filter(l => l.midday_walk).length
       const dinner = weekLogs.filter(l => l.dinner_walk).length
       const workouts = weekLogs.filter(l => l.workout_done).length
-
-      const totalPossible = days * 4 + 3
+      const totalPossible = weekLogs.length * 4 + 3
       const totalDone = yoga + sun + midday + dinner + workouts
-      const habitScore = Math.round((totalDone / totalPossible) * 100)
-
-      return {
-        week: format(weekStart, 'MMM d'),
-        yoga,
-        sunlight: sun,
-        middayWalk: midday,
-        dinnerWalk: dinner,
-        workouts,
-        habitScore,
-        days,
-      }
+      return { week: format(weekStart, 'MMM d'), yoga, sun, midday, dinner, workouts, score: Math.round((totalDone / totalPossible) * 100) }
     }).filter(Boolean)
   }, [logs])
 
   const last30 = logs.slice(-30)
+  const n = last30.length || 1
   const yogaDays = last30.filter(l => l.yoga).length
   const sunDays = last30.filter(l => l.sunlight).length
   const middayDays = last30.filter(l => l.midday_walk).length
   const dinnerDays = last30.filter(l => l.dinner_walk).length
   const workoutSessions = last30.filter(l => l.workout_done).length
-  const totalDays = last30.length || 1
 
   if (loading) return (
-    <div className="flex items-center justify-center min-h-64">
-      <div className="w-6 h-6 border-2 border-stone-300 border-t-stone-600 rounded-full animate-spin" />
-    </div>
-  )
-
-  if (logs.length === 0) return (
-    <div className="page-enter">
-      <div className="pt-2 mb-6">
-        <h1 className="text-3xl font-display text-stone-800">Trends</h1>
-      </div>
-      <div className="card p-8 text-center">
-        <div className="text-4xl mb-3">📈</div>
-        <div className="text-stone-600 font-medium mb-1">No data yet</div>
-        <div className="text-sm text-stone-400">Start logging daily habits and workouts — your trends will appear here.</div>
-      </div>
+    <div className="bg-trends" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: '20px', height: '20px', border: `2px solid ${W(0.2)}`, borderTopColor: W(0.7), borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 
   return (
-    <div className="page-enter space-y-6">
-      <div className="pt-2">
-        <h1 className="text-3xl font-display text-stone-800">Trends</h1>
-        <p className="text-sm text-stone-400 mt-1">Last 8 weeks</p>
-      </div>
+    <div className="bg-trends page-enter" style={{ minHeight: '100vh', padding: '28px 20px 20px' }}>
+      <div style={{ fontSize: '9px', color: W(0.38), letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: '3px' }}>Last 8 weeks</div>
+      <div className="font-serif-italic" style={{ fontSize: '28px', color: W(0.92), lineHeight: 1.1, marginBottom: '3px' }}>Trends.</div>
+      <div style={{ fontSize: '10px', color: W(0.35), marginBottom: '22px' }}>Your progress over time</div>
 
-      {/* Summary stats */}
-      <div className="card p-5">
-        <SectionTitle>Last 30 days</SectionTitle>
-        <StatRow label="Morning yoga" sub={`${yogaDays} of ${totalDays} days`} value={`${Math.round(yogaDays/totalDays*100)}%`} color="sage" />
-        <StatRow label="Morning sunlight" sub={`${sunDays} of ${totalDays} days`} value={`${Math.round(sunDays/totalDays*100)}%`} color="sage" />
-        <StatRow label="Midday walk" sub={`${middayDays} of ${totalDays} days`} value={`${Math.round(middayDays/totalDays*100)}%`} color="terracotta" />
-        <StatRow label="After-dinner walk" sub={`${dinnerDays} of ${totalDays} days`} value={`${Math.round(dinnerDays/totalDays*100)}%`} color="terracotta" />
-        <StatRow label="Workout sessions" sub="Mon / Wed / Fri" value={workoutSessions} />
-      </div>
-
-      {/* Weekly habit score */}
-      {weeklyData.length > 1 && (
-        <div className="card p-5">
-          <SectionTitle>Weekly habit score</SectionTitle>
-          <ResponsiveContainer width="100%" height={160}>
-            <BarChart data={weeklyData} barSize={28}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f4" vertical={false} />
-              <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#a8a29e' }} axisLine={false} tickLine={false} />
-              <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: '#a8a29e' }} axisLine={false} tickLine={false} width={28} />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="habitScore" name="Habit score" fill="#5fa45f" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+      {logs.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '40px 20px', color: W(0.4), fontSize: '13px' }}>
+          Start logging daily habits — your trends will appear here.
         </div>
-      )}
-
-      {/* Morning routine streak */}
-      {weeklyData.length > 1 && (
-        <div className="card p-5">
-          <SectionTitle>Morning routine consistency</SectionTitle>
-          <ResponsiveContainer width="100%" height={160}>
-            <LineChart data={weeklyData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f4" vertical={false} />
-              <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#a8a29e' }} axisLine={false} tickLine={false} />
-              <YAxis domain={[0, 7]} tick={{ fontSize: 11, fill: '#a8a29e' }} axisLine={false} tickLine={false} width={20} />
-              <Tooltip content={<CustomTooltip />} />
-              <Line dataKey="yoga" name="Yoga days" stroke="#5fa45f" strokeWidth={2} dot={{ r: 3, fill: '#5fa45f' }} />
-              <Line dataKey="sunlight" name="Sunlight days" stroke="#e07040" strokeWidth={2} dot={{ r: 3, fill: '#e07040' }} strokeDasharray="4 2" />
-            </LineChart>
-          </ResponsiveContainer>
-          <div className="flex gap-4 mt-3">
-            <div className="flex items-center gap-1.5 text-xs text-stone-500">
-              <div className="w-4 h-0.5 bg-sage-500 rounded" /> Yoga
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-stone-500">
-              <div className="w-4 h-0.5 bg-terracotta-400 rounded border-dashed" style={{borderTop: '2px dashed #e07040', background: 'none'}} /> Sunlight
-            </div>
+      ) : (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '20px' }}>
+            <StatBox value={`${Math.round(yogaDays/n*100)}%`} label="Yoga consistency" />
+            <StatBox value={workoutSessions} label="Workouts logged" />
+            <StatBox value={`${Math.round(middayDays/n*100)}%`} label="Midday walks" />
+            <StatBox value={`${Math.round(dinnerDays/n*100)}%`} label="Dinner walks" />
           </div>
-        </div>
-      )}
 
-      {/* Walk consistency */}
-      {weeklyData.length > 1 && (
-        <div className="card p-5">
-          <SectionTitle>Walk consistency</SectionTitle>
-          <ResponsiveContainer width="100%" height={160}>
-            <LineChart data={weeklyData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f4" vertical={false} />
-              <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#a8a29e' }} axisLine={false} tickLine={false} />
-              <YAxis domain={[0, 7]} tick={{ fontSize: 11, fill: '#a8a29e' }} axisLine={false} tickLine={false} width={20} />
-              <Tooltip content={<CustomTooltip />} />
-              <Line dataKey="middayWalk" name="Midday walks" stroke="#78716c" strokeWidth={2} dot={{ r: 3, fill: '#78716c' }} />
-              <Line dataKey="dinnerWalk" name="Dinner walks" stroke="#a8a29e" strokeWidth={2} dot={{ r: 3, fill: '#a8a29e' }} strokeDasharray="4 2" />
-            </LineChart>
-          </ResponsiveContainer>
-          <div className="flex gap-4 mt-3">
-            <div className="flex items-center gap-1.5 text-xs text-stone-500">
-              <div className="w-4 h-0.5 bg-stone-600 rounded" /> Midday
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-stone-500">
-              <div className="w-4 h-0.5 bg-stone-400 rounded" /> Dinner
-            </div>
-          </div>
-        </div>
-      )}
+          {weeklyData.length > 0 && (
+            <>
+              <div style={{ fontSize: '8px', letterSpacing: '.1em', textTransform: 'uppercase', color: W(0.3), marginBottom: '10px' }}>Weekly habit score</div>
+              <div style={{ background: W(0.06), border: `1px solid ${W(0.09)}`, borderRadius: '16px', padding: '14px 16px', marginBottom: '14px' }}>
+                {weeklyData.map((w, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: i < weeklyData.length - 1 ? '8px' : 0 }}>
+                    <div style={{ fontSize: '9px', color: W(0.3), width: '30px', flexShrink: 0 }}>{w.week}</div>
+                    <div style={{ flex: 1, height: '5px', background: W(0.1), borderRadius: '3px', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${w.score}%`, background: W(0.75), borderRadius: '3px' }} />
+                    </div>
+                    <div style={{ fontSize: '9px', color: W(0.3), width: '28px', textAlign: 'right', flexShrink: 0 }}>{w.score}%</div>
+                  </div>
+                ))}
+              </div>
 
-      {/* Workouts */}
-      {weeklyData.length > 1 && (
-        <div className="card p-5">
-          <SectionTitle>Workouts per week</SectionTitle>
-          <ResponsiveContainer width="100%" height={140}>
-            <BarChart data={weeklyData} barSize={28}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f4" vertical={false} />
-              <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#a8a29e' }} axisLine={false} tickLine={false} />
-              <YAxis domain={[0, 3]} ticks={[0,1,2,3]} tick={{ fontSize: 11, fill: '#a8a29e' }} axisLine={false} tickLine={false} width={20} />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="workouts" name="Workouts" fill="#292524" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+              <div style={{ fontSize: '8px', letterSpacing: '.1em', textTransform: 'uppercase', color: W(0.3), marginBottom: '10px' }}>Workouts per week</div>
+              <div style={{ background: W(0.06), border: `1px solid ${W(0.09)}`, borderRadius: '16px', padding: '14px 16px' }}>
+                {weeklyData.map((w, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: i < weeklyData.length - 1 ? '8px' : 0 }}>
+                    <div style={{ fontSize: '9px', color: W(0.3), width: '30px', flexShrink: 0 }}>{w.week}</div>
+                    <div style={{ flex: 1, height: '5px', background: W(0.1), borderRadius: '3px', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${(w.workouts / 3) * 100}%`, background: W(0.75), borderRadius: '3px' }} />
+                    </div>
+                    <div style={{ fontSize: '9px', color: W(0.3), width: '28px', textAlign: 'right', flexShrink: 0 }}>{w.workouts}/3</div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </>
       )}
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }
