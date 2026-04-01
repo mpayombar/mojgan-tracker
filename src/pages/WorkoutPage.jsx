@@ -1,21 +1,34 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { format, isMonday, isWednesday, isFriday, parseISO, isFuture, isToday, addDays, subDays } from 'date-fns'
-import { Check, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, Plus, X, ChevronDown, ChevronUp } from 'lucide-react'
 import { useDay } from '../lib/useData'
 import { WORKOUT_DAYS } from '../lib/workouts'
 import { useLocation } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
 
-function ExerciseRow({ exercise, value, onChange, disabled }) {
+function ExerciseRow({ exercise, value, onChange, disabled, onRemove, isCustom }) {
   return (
     <div className="py-3.5 border-b border-stone-50 last:border-0">
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="flex-1">
-          <div className="text-sm font-medium text-stone-800">{exercise.name}</div>
-          <div className="text-xs text-stone-400 mt-0.5">{exercise.note}</div>
+          <div className="flex items-center gap-2">
+            <div className="text-sm font-medium text-stone-800">{exercise.name}</div>
+            {isCustom && (
+              <span className="text-xs px-1.5 py-0.5 bg-terracotta-50 text-terracotta-500 rounded-md font-medium">custom</span>
+            )}
+          </div>
+          {exercise.note && <div className="text-xs text-stone-400 mt-0.5">{exercise.note}</div>}
         </div>
-        <div className="text-right flex-shrink-0">
-          <div className="text-xs font-medium text-stone-600">{exercise.sets}</div>
-          <div className="text-xs text-stone-400">{exercise.startLoad}</div>
+        <div className="flex items-start gap-2 flex-shrink-0">
+          <div className="text-right">
+            <div className="text-xs font-medium text-stone-600">{exercise.sets}</div>
+            <div className="text-xs text-stone-400">{exercise.startLoad}</div>
+          </div>
+          {isCustom && onRemove && (
+            <button onClick={onRemove} className="p-1 hover:bg-stone-100 rounded-lg transition-colors mt-0.5">
+              <X size={13} className="text-stone-300 hover:text-stone-500" />
+            </button>
+          )}
         </div>
       </div>
       {!disabled && (
@@ -30,6 +43,121 @@ function ExerciseRow({ exercise, value, onChange, disabled }) {
   )
 }
 
+function AddExercisePanel({ onAdd, onClose, savedExercises }) {
+  const [name, setName] = useState('')
+  const [sets, setSets] = useState('')
+  const [load, setLoad] = useState('')
+  const [note, setNote] = useState('')
+  const [showSaved, setShowSaved] = useState(savedExercises.length > 0)
+
+  const handleAdd = () => {
+    if (!name.trim()) return
+    onAdd({ name: name.trim(), sets: sets.trim() || '3 × 10', startLoad: load.trim() || '—', note: note.trim() })
+    onClose()
+  }
+
+  const handleQuickAdd = (ex) => {
+    onAdd({ name: ex.name, sets: ex.default_sets || '3 × 10', startLoad: ex.default_load || '—', note: '' })
+    onClose()
+  }
+
+  return (
+    <div className="card p-5 border-2 border-terracotta-100">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-medium text-stone-700">Add exercise</h3>
+        <button onClick={onClose} className="p-1 hover:bg-stone-100 rounded-lg transition-colors">
+          <X size={16} className="text-stone-400" />
+        </button>
+      </div>
+
+      {savedExercises.length > 0 && (
+        <div className="mb-4">
+          <button
+            onClick={() => setShowSaved(s => !s)}
+            className="flex items-center gap-1.5 text-xs font-medium text-stone-500 mb-2 hover:text-stone-700"
+          >
+            {showSaved ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            Your saved exercises ({savedExercises.length})
+          </button>
+          {showSaved && (
+            <div className="space-y-1.5 mb-3">
+              {savedExercises.map(ex => (
+                <button
+                  key={ex.id}
+                  onClick={() => handleQuickAdd(ex)}
+                  className="w-full flex items-center justify-between p-3 bg-stone-50 hover:bg-terracotta-50 rounded-xl transition-colors text-left"
+                >
+                  <div>
+                    <div className="text-sm font-medium text-stone-700">{ex.name}</div>
+                    <div className="text-xs text-stone-400">{ex.default_sets} · {ex.default_load}</div>
+                  </div>
+                  <Plus size={14} className="text-stone-300" />
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="border-t border-stone-100 pt-3 mb-1">
+            <div className="text-xs text-stone-400 mb-3">Or create a new one:</div>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-2.5">
+        <div>
+          <label className="text-xs text-stone-400 font-medium block mb-1">Exercise name *</label>
+          <input
+            className="input-field"
+            placeholder="e.g. Single-leg RDL"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            autoFocus
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-xs text-stone-400 font-medium block mb-1">Sets × reps</label>
+            <input
+              className="input-field"
+              placeholder="e.g. 3 × 10"
+              value={sets}
+              onChange={e => setSets(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-stone-400 font-medium block mb-1">Load / weight</label>
+            <input
+              className="input-field"
+              placeholder="e.g. 20 lb DB"
+              value={load}
+              onChange={e => setLoad(e.target.value)}
+            />
+          </div>
+        </div>
+        <div>
+          <label className="text-xs text-stone-400 font-medium block mb-1">Note (optional)</label>
+          <input
+            className="input-field"
+            placeholder="e.g. substituted due to knee"
+            value={note}
+            onChange={e => setNote(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="flex gap-2 mt-4">
+        <button onClick={onClose} className="btn-secondary flex-1">Cancel</button>
+        <button
+          onClick={handleAdd}
+          disabled={!name.trim()}
+          className="btn-success flex-1 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Add exercise
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function DateNav({ date, onPrev, onNext }) {
   return (
     <div className="flex items-center justify-between">
@@ -38,7 +166,7 @@ function DateNav({ date, onPrev, onNext }) {
       </button>
       <div className="text-center">
         <div className="text-xs text-stone-400 font-medium uppercase tracking-wide">
-          {isToday(date) ? 'Today' : isFuture(date) ? 'Upcoming' : 'Past'}
+          {isToday(date) ? 'Today' : isFuture(date) && !isToday(date) ? 'Upcoming' : 'Past'}
         </div>
         <div className="text-sm font-medium text-stone-700">{format(date, 'EEEE, MMMM d')}</div>
       </div>
@@ -59,21 +187,64 @@ export default function WorkoutPage() {
   const [logs, setLogs] = useState({})
   const [notes, setNotes] = useState('')
   const [saved, setSaved] = useState(false)
+  const [customExercises, setCustomExercises] = useState([])
+  const [savedExercises, setSavedExercises] = useState([])
+  const [showAddPanel, setShowAddPanel] = useState(false)
 
   const dayKey = isMonday(date) ? 'Mon' : isWednesday(date) ? 'Wed' : isFriday(date) ? 'Fri' : null
   const workout = dayKey ? WORKOUT_DAYS[dayKey] : null
 
+  // Load saved custom exercises from Supabase
+  const loadSavedExercises = useCallback(async () => {
+    const { data } = await supabase
+      .from('custom_exercises')
+      .select('*')
+      .order('use_count', { ascending: false })
+    if (data) setSavedExercises(data)
+  }, [])
+
+  useEffect(() => { loadSavedExercises() }, [loadSavedExercises])
+
   useEffect(() => {
     setLogs(log?.exercise_logs || {})
     setNotes(log?.notes || '')
+    setCustomExercises(log?.custom_exercises || [])
     setSaved(false)
   }, [log, date])
+
+  const handleAddExercise = async (ex) => {
+    const newCustom = [...customExercises, { ...ex, id: `custom_${Date.now()}` }]
+    setCustomExercises(newCustom)
+
+    // Save or update in custom_exercises table
+    const existing = savedExercises.find(s => s.name.toLowerCase() === ex.name.toLowerCase())
+    if (existing) {
+      await supabase.from('custom_exercises').update({
+        default_sets: ex.sets,
+        default_load: ex.startLoad,
+        use_count: (existing.use_count || 1) + 1,
+        updated_at: new Date().toISOString()
+      }).eq('id', existing.id)
+    } else {
+      await supabase.from('custom_exercises').insert({
+        name: ex.name,
+        default_sets: ex.sets,
+        default_load: ex.startLoad,
+      })
+    }
+    await loadSavedExercises()
+  }
+
+  const handleRemoveCustom = (id) => {
+    setCustomExercises(prev => prev.filter(e => e.id !== id))
+  }
 
   const handleSave = async () => {
     await save({
       ...(log || {}),
       exercise_logs: logs,
       notes,
+      custom_exercises: customExercises,
       workout_type: workout?.type || null,
       workout_done: log?.workout_done || false,
     })
@@ -86,6 +257,7 @@ export default function WorkoutPage() {
       ...(log || {}),
       exercise_logs: logs,
       notes,
+      custom_exercises: customExercises,
       workout_type: workout?.type || null,
       workout_done: true,
     })
@@ -147,6 +319,8 @@ export default function WorkoutPage() {
             <p className="text-xs text-stone-400 mb-4">
               {isFutureDay ? 'Your exercises for this session' : 'Log what you actually did — weight × reps, or just notes'}
             </p>
+
+            {/* Plan exercises */}
             {workout.exercises.map((ex, i) => (
               <ExerciseRow
                 key={i}
@@ -156,7 +330,40 @@ export default function WorkoutPage() {
                 disabled={isFutureDay}
               />
             ))}
+
+            {/* Custom exercises */}
+            {customExercises.map((ex, i) => (
+              <ExerciseRow
+                key={ex.id}
+                exercise={ex}
+                value={logs[`custom_${i}`]}
+                onChange={val => setLogs(prev => ({ ...prev, [`custom_${i}`]: val }))}
+                disabled={isFutureDay}
+                isCustom={true}
+                onRemove={() => handleRemoveCustom(ex.id)}
+              />
+            ))}
+
+            {/* Add exercise button */}
+            {!isFutureDay && !showAddPanel && (
+              <button
+                onClick={() => setShowAddPanel(true)}
+                className="w-full mt-3 flex items-center justify-center gap-2 py-3 border-2 border-dashed border-stone-200 rounded-xl text-sm text-stone-400 hover:border-terracotta-200 hover:text-terracotta-400 transition-colors"
+              >
+                <Plus size={15} />
+                Add exercise
+              </button>
+            )}
           </div>
+
+          {/* Add exercise panel */}
+          {!isFutureDay && showAddPanel && (
+            <AddExercisePanel
+              onAdd={handleAddExercise}
+              onClose={() => setShowAddPanel(false)}
+              savedExercises={savedExercises}
+            />
+          )}
 
           {!isFutureDay && (
             <>
