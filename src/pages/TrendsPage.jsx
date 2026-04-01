@@ -1,106 +1,146 @@
-import { useMemo } from 'react'
-import { subWeeks, endOfWeek, format, eachWeekOfInterval } from 'date-fns'
+import { useState } from 'react'
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isToday, subMonths, addMonths } from 'date-fns'
+import { ChevronLeft, ChevronRight, Wind, Sun, Footprints, Dumbbell } from 'lucide-react'
 import { useRange } from '../lib/useData'
 
-const today = new Date()
-const start = subWeeks(today, 8)
 const W = (o) => `rgba(255,255,255,${o})`
 
-function StatBox({ value, label }) {
-  return (
-    <div style={{ background: W(0.07), border: `1px solid ${W(0.09)}`, borderRadius: '12px', padding: '12px 14px' }}>
-      <div style={{ fontSize: '24px', fontWeight: 300, color: W(0.9) }}>{value}</div>
-      <div style={{ fontSize: '8px', color: W(0.32), textTransform: 'uppercase', letterSpacing: '.06em', marginTop: '2px' }}>{label}</div>
-    </div>
-  )
-}
+export default function HistoryPage() {
+  const [month, setMonth] = useState(new Date())
+  const [selected, setSelected] = useState(null)
+  const start = startOfMonth(month)
+  const end = endOfMonth(month)
+  const { logs } = useRange(start, end)
 
-export default function TrendsPage() {
-  const { logs, loading } = useRange(start, today)
+  const days = eachDayOfInterval({ start, end })
+  const logMap = {}
+  logs.forEach(l => { logMap[l.date] = l })
 
-  const weeklyData = useMemo(() => {
-    const weeks = eachWeekOfInterval({ start, end: today }, { weekStartsOn: 1 })
-    return weeks.map(weekStart => {
-      const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 })
-      const weekLogs = logs.filter(l => { const d = new Date(l.date); return d >= weekStart && d <= weekEnd })
-      if (!weekLogs.length) return null
-      const yoga = weekLogs.filter(l => l.yoga).length
-      const sun = weekLogs.filter(l => l.sunlight).length
-      const midday = weekLogs.filter(l => l.midday_walk).length
-      const dinner = weekLogs.filter(l => l.dinner_walk).length
-      const workouts = weekLogs.filter(l => l.workout_done).length
-      const totalPossible = weekLogs.length * 4 + 3
-      const totalDone = yoga + sun + midday + dinner + workouts
-      return { week: format(weekStart, 'MMM d'), yoga, sun, midday, dinner, workouts, score: Math.round((totalDone / totalPossible) * 100) }
-    }).filter(Boolean)
-  }, [logs])
+  const firstDayOffset = (start.getDay() + 6) % 7
+  const selectedLog = selected ? logMap[format(selected, 'yyyy-MM-dd')] : null
 
-  const last30 = logs.slice(-30)
-  const n = last30.length || 1
-  const yogaDays = last30.filter(l => l.yoga).length
-  const sunDays = last30.filter(l => l.sunlight).length
-  const middayDays = last30.filter(l => l.midday_walk).length
-  const dinnerDays = last30.filter(l => l.dinner_walk).length
-  const workoutSessions = last30.filter(l => l.workout_done).length
-
-  if (loading) return (
-    <div className="bg-trends" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: '20px', height: '20px', border: `2px solid ${W(0.2)}`, borderTopColor: W(0.7), borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
-  )
+  const getDayType = (log) => {
+    if (!log) return 'empty'
+    const habits = [log.yoga, log.sunlight, log.midday_walk, log.dinner_walk].filter(Boolean).length
+    const hasWorkout = log.workout_done
+    if (habits === 4 || (habits >= 3 && hasWorkout)) return 'full'
+    if (habits >= 2 || hasWorkout) return 'partial'
+    if (habits >= 1) return 'some'
+    return 'empty'
+  }
 
   return (
-    <div className="bg-trends page-enter" style={{ minHeight: '100vh', padding: '28px 20px 20px' }}>
-      <div style={{ fontSize: '9px', color: W(0.38), letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: '3px' }}>Last 8 weeks</div>
-      <div className="font-serif-italic" style={{ fontSize: '28px', color: W(0.92), lineHeight: 1.1, marginBottom: '3px' }}>Trends.</div>
-      <div style={{ fontSize: '10px', color: W(0.35), marginBottom: '22px' }}>Your progress over time</div>
+    <div className="bg-history page-enter" style={{ minHeight: '100vh', padding: '28px 20px 20px' }}>
+      <div style={{ fontSize: '9px', color: W(0.38), letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: '3px' }}>
+        {format(month, 'MMMM yyyy')}
+      </div>
+      <div className="font-serif-italic" style={{ fontSize: '28px', color: W(0.92), lineHeight: 1.1, marginBottom: '3px' }}>History.</div>
+      <div style={{ fontSize: '10px', color: W(0.35), marginBottom: '20px' }}>Tap any day for details</div>
 
-      {logs.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px 20px', color: W(0.4), fontSize: '13px' }}>
-          Start logging daily habits — your trends will appear here.
+      {/* Month nav */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+        <button onClick={() => setMonth(subMonths(month, 1))} style={{ padding: '6px', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+          <ChevronLeft size={18} style={{ stroke: W(0.45) }} strokeWidth={1.5} />
+        </button>
+        <div style={{ fontSize: '12px', fontWeight: 500, color: W(0.75) }}>{format(month, 'MMMM yyyy')}</div>
+        <button onClick={() => setMonth(addMonths(month, 1))} style={{ padding: '6px', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+          <ChevronRight size={18} style={{ stroke: W(0.45) }} strokeWidth={1.5} />
+        </button>
+      </div>
+
+      {/* Calendar */}
+      <div style={{ background: W(0.06), border: `1px solid ${W(0.09)}`, borderRadius: '16px', padding: '14px', marginBottom: '12px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', marginBottom: '6px' }}>
+          {['M','T','W','T','F','S','S'].map((d, i) => (
+            <div key={i} style={{ textAlign: 'center', fontSize: '9px', color: W(0.25), padding: '2px 0' }}>{d}</div>
+          ))}
         </div>
-      ) : (
-        <>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '20px' }}>
-            <StatBox value={`${Math.round(yogaDays/n*100)}%`} label="Yoga consistency" />
-            <StatBox value={workoutSessions} label="Workouts logged" />
-            <StatBox value={`${Math.round(middayDays/n*100)}%`} label="Midday walks" />
-            <StatBox value={`${Math.round(dinnerDays/n*100)}%`} label="Dinner walks" />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
+          {Array.from({ length: firstDayOffset }).map((_, i) => <div key={`e${i}`} />)}
+          {days.map(day => {
+            const dateStr = format(day, 'yyyy-MM-dd')
+            const log = logMap[dateStr]
+            const type = getDayType(log)
+            const isSelected = selected && format(selected, 'yyyy-MM-dd') === dateStr
+            const isTdy = isToday(day)
+            const num = format(day, 'd')
+
+            let bg = 'transparent'
+            let color = W(0.28)
+            let border = 'none'
+
+            if (isSelected) { bg = W(0.9); color = '#4a3020'; }
+            else if (type === 'full') { bg = W(0.82); color = '#4a3020'; }
+            else if (type === 'partial') { bg = W(0.18); color = W(0.75); }
+            else if (type === 'some') { bg = W(0.08); color = W(0.45); }
+            if (isTdy && !isSelected) { border = `1.5px solid ${W(0.5)}`; color = W(0.85); bg = 'transparent'; }
+
+            return (
+              <button
+                key={dateStr}
+                onClick={() => setSelected(isSelected ? null : day)}
+                style={{ aspectRatio: '1', borderRadius: '7px', background: bg, border, color, fontSize: '9px', fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                {num}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div style={{ display: 'flex', gap: '14px', marginBottom: '16px' }}>
+        {[
+          { bg: W(0.82), label: 'Full day' },
+          { bg: W(0.18), label: 'Partial' },
+          { bg: W(0.08), label: 'Some' },
+        ].map(({ bg, label }) => (
+          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: bg }} />
+            <div style={{ fontSize: '9px', color: W(0.32) }}>{label}</div>
           </div>
+        ))}
+      </div>
 
-          {weeklyData.length > 0 && (
+      {/* Selected day detail */}
+      {selected && (
+        <div style={{ background: W(0.06), border: `1px solid ${W(0.09)}`, borderRadius: '16px', padding: '14px 16px' }}>
+          <div style={{ fontSize: '9px', color: W(0.35), letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '12px' }}>
+            {format(selected, 'EEEE, MMMM d')}
+          </div>
+          {!selectedLog ? (
+            <div style={{ fontSize: '12px', color: W(0.35), textAlign: 'center', padding: '12px 0' }}>Nothing logged this day</div>
+          ) : (
             <>
-              <div style={{ fontSize: '8px', letterSpacing: '.1em', textTransform: 'uppercase', color: W(0.3), marginBottom: '10px' }}>Weekly habit score</div>
-              <div style={{ background: W(0.06), border: `1px solid ${W(0.09)}`, borderRadius: '16px', padding: '14px 16px', marginBottom: '14px' }}>
-                {weeklyData.map((w, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: i < weeklyData.length - 1 ? '8px' : 0 }}>
-                    <div style={{ fontSize: '9px', color: W(0.3), width: '30px', flexShrink: 0 }}>{w.week}</div>
-                    <div style={{ flex: 1, height: '5px', background: W(0.1), borderRadius: '3px', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${w.score}%`, background: W(0.75), borderRadius: '3px' }} />
-                    </div>
-                    <div style={{ fontSize: '9px', color: W(0.3), width: '28px', textAlign: 'right', flexShrink: 0 }}>{w.score}%</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '10px' }}>
+                {[
+                  { key: 'yoga', icon: Wind, label: 'Yoga & breathing' },
+                  { key: 'sunlight', icon: Sun, label: 'Morning sunlight' },
+                  { key: 'midday_walk', icon: Footprints, label: 'Midday walk' },
+                  { key: 'dinner_walk', icon: Footprints, label: 'Dinner walk' },
+                ].map(h => (
+                  <div key={h.key} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 10px', background: selectedLog[h.key] ? W(0.15) : W(0.05), borderRadius: '10px', opacity: selectedLog[h.key] ? 1 : 0.5 }}>
+                    <h.icon size={13} style={{ stroke: W(0.7), flexShrink: 0 }} strokeWidth={1.5} />
+                    <div style={{ fontSize: '10px', color: W(0.75) }}>{h.label}</div>
                   </div>
                 ))}
               </div>
-
-              <div style={{ fontSize: '8px', letterSpacing: '.1em', textTransform: 'uppercase', color: W(0.3), marginBottom: '10px' }}>Workouts per week</div>
-              <div style={{ background: W(0.06), border: `1px solid ${W(0.09)}`, borderRadius: '16px', padding: '14px 16px' }}>
-                {weeklyData.map((w, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: i < weeklyData.length - 1 ? '8px' : 0 }}>
-                    <div style={{ fontSize: '9px', color: W(0.3), width: '30px', flexShrink: 0 }}>{w.week}</div>
-                    <div style={{ flex: 1, height: '5px', background: W(0.1), borderRadius: '3px', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${(w.workouts / 3) * 100}%`, background: W(0.75), borderRadius: '3px' }} />
-                    </div>
-                    <div style={{ fontSize: '9px', color: W(0.3), width: '28px', textAlign: 'right', flexShrink: 0 }}>{w.workouts}/3</div>
-                  </div>
-                ))}
-              </div>
+              {selectedLog.workout_done && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 10px', background: W(0.1), borderRadius: '10px', marginBottom: '8px' }}>
+                  <Dumbbell size={13} style={{ stroke: W(0.7) }} strokeWidth={1.5} />
+                  <div style={{ fontSize: '11px', fontWeight: 500, color: W(0.85) }}>{selectedLog.workout_type || 'Workout'} — complete</div>
+                </div>
+              )}
+              {selectedLog.notes && (
+                <div style={{ padding: '9px 10px', background: W(0.05), borderRadius: '10px' }}>
+                  <div style={{ fontSize: '9px', color: W(0.32), marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.06em' }}>Notes</div>
+                  <div style={{ fontSize: '12px', color: W(0.7) }}>{selectedLog.notes}</div>
+                </div>
+              )}
             </>
           )}
-        </>
+        </div>
       )}
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }
