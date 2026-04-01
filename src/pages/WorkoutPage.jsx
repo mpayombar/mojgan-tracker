@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { format, isMonday, isWednesday, isFriday, parseISO, isFuture, isToday, addDays, subDays } from 'date-fns'
-import { Check, ChevronLeft, ChevronRight, Plus, X, ChevronDown, ChevronUp } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, Plus, X, ChevronDown, ChevronUp, Pencil, Trash2 } from 'lucide-react'
 import { useDay } from '../lib/useData'
 import { WORKOUT_DAYS } from '../lib/workouts'
 import { useLocation } from 'react-router-dom'
@@ -43,12 +43,17 @@ function ExerciseRow({ exercise, value, onChange, disabled, onRemove, isCustom }
   )
 }
 
-function AddExercisePanel({ onAdd, onClose, savedExercises }) {
+function AddExercisePanel({ onAdd, onClose, savedExercises, onDeleteSaved, onEditSaved }) {
   const [name, setName] = useState('')
   const [sets, setSets] = useState('')
   const [load, setLoad] = useState('')
   const [note, setNote] = useState('')
   const [showSaved, setShowSaved] = useState(savedExercises.length > 0)
+  const [editingId, setEditingId] = useState(null)
+  const [editName, setEditName] = useState('')
+  const [editSets, setEditSets] = useState('')
+  const [editLoad, setEditLoad] = useState('')
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
 
   const handleAdd = () => {
     if (!name.trim()) return
@@ -57,8 +62,41 @@ function AddExercisePanel({ onAdd, onClose, savedExercises }) {
   }
 
   const handleQuickAdd = (ex) => {
+    if (editingId || confirmDeleteId) return
     onAdd({ name: ex.name, sets: ex.default_sets || '3 × 10', startLoad: ex.default_load || '—', note: '' })
     onClose()
+  }
+
+  const startEdit = (ex, e) => {
+    e.stopPropagation()
+    setEditingId(ex.id)
+    setEditName(ex.name)
+    setEditSets(ex.default_sets || '')
+    setEditLoad(ex.default_load || '')
+    setConfirmDeleteId(null)
+  }
+
+  const saveEdit = async (e) => {
+    e.stopPropagation()
+    await onEditSaved(editingId, { name: editName.trim(), default_sets: editSets.trim(), default_load: editLoad.trim() })
+    setEditingId(null)
+  }
+
+  const cancelEdit = (e) => {
+    e.stopPropagation()
+    setEditingId(null)
+  }
+
+  const confirmDelete = (id, e) => {
+    e.stopPropagation()
+    setConfirmDeleteId(id)
+    setEditingId(null)
+  }
+
+  const doDelete = async (id, e) => {
+    e.stopPropagation()
+    await onDeleteSaved(id)
+    setConfirmDeleteId(null)
   }
 
   return (
@@ -82,17 +120,66 @@ function AddExercisePanel({ onAdd, onClose, savedExercises }) {
           {showSaved && (
             <div className="space-y-1.5 mb-3">
               {savedExercises.map(ex => (
-                <button
-                  key={ex.id}
-                  onClick={() => handleQuickAdd(ex)}
-                  className="w-full flex items-center justify-between p-3 bg-stone-50 hover:bg-terracotta-50 rounded-xl transition-colors text-left"
-                >
-                  <div>
-                    <div className="text-sm font-medium text-stone-700">{ex.name}</div>
-                    <div className="text-xs text-stone-400">{ex.default_sets} · {ex.default_load}</div>
-                  </div>
-                  <Plus size={14} className="text-stone-300" />
-                </button>
+                <div key={ex.id}>
+                  {editingId === ex.id ? (
+                    <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
+                      <input
+                        className="input-field text-xs"
+                        value={editName}
+                        onChange={e => setEditName(e.target.value)}
+                        placeholder="Exercise name"
+                        onClick={e => e.stopPropagation()}
+                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          className="input-field text-xs"
+                          value={editSets}
+                          onChange={e => setEditSets(e.target.value)}
+                          placeholder="Sets × reps"
+                          onClick={e => e.stopPropagation()}
+                        />
+                        <input
+                          className="input-field text-xs"
+                          value={editLoad}
+                          onChange={e => setEditLoad(e.target.value)}
+                          placeholder="Load"
+                          onClick={e => e.stopPropagation()}
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={cancelEdit} className="btn-secondary flex-1 text-xs py-1.5">Cancel</button>
+                        <button onClick={saveEdit} className="btn-success flex-1 text-xs py-1.5">Save</button>
+                      </div>
+                    </div>
+                  ) : confirmDeleteId === ex.id ? (
+                    <div className="p-3 bg-red-50 rounded-xl border border-red-100">
+                      <div className="text-xs text-red-600 font-medium mb-2">Delete "{ex.name}" from your library?</div>
+                      <div className="flex gap-2">
+                        <button onClick={e => { e.stopPropagation(); setConfirmDeleteId(null) }} className="btn-secondary flex-1 text-xs py-1.5">Cancel</button>
+                        <button onClick={e => doDelete(ex.id, e)} className="flex-1 text-xs py-1.5 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors">Delete</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-full flex items-center gap-2 p-3 bg-stone-50 rounded-xl">
+                      <button
+                        onClick={() => handleQuickAdd(ex)}
+                        className="flex-1 flex items-center justify-between text-left hover:opacity-70 transition-opacity"
+                      >
+                        <div>
+                          <div className="text-sm font-medium text-stone-700">{ex.name}</div>
+                          <div className="text-xs text-stone-400">{ex.default_sets} · {ex.default_load}</div>
+                        </div>
+                        <Plus size={14} className="text-stone-300 mr-2" />
+                      </button>
+                      <button onClick={e => startEdit(ex, e)} className="p-1.5 hover:bg-stone-200 rounded-lg transition-colors flex-shrink-0">
+                        <Pencil size={12} className="text-stone-400" />
+                      </button>
+                      <button onClick={e => confirmDelete(ex.id, e)} className="p-1.5 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0">
+                        <Trash2 size={12} className="text-stone-400 hover:text-red-400" />
+                      </button>
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           )}
@@ -212,6 +299,19 @@ export default function WorkoutPage() {
     setSaved(false)
   }, [log, date])
 
+  const handleDeleteSaved = async (id) => {
+    await supabase.from('custom_exercises').delete().eq('id', id)
+    await loadSavedExercises()
+  }
+
+  const handleEditSaved = async (id, updates) => {
+    await supabase.from('custom_exercises').update({
+      ...updates,
+      updated_at: new Date().toISOString()
+    }).eq('id', id)
+    await loadSavedExercises()
+  }
+
   const handleAddExercise = async (ex) => {
     const newCustom = [...customExercises, { ...ex, id: `custom_${Date.now()}` }]
     setCustomExercises(newCustom)
@@ -321,6 +421,8 @@ export default function WorkoutPage() {
               onAdd={handleAddExercise}
               onClose={() => setShowAddPanel(false)}
               savedExercises={savedExercises}
+              onDeleteSaved={handleDeleteSaved}
+              onEditSaved={handleEditSaved}
             />
           )}
 
@@ -422,6 +524,8 @@ export default function WorkoutPage() {
               onAdd={handleAddExercise}
               onClose={() => setShowAddPanel(false)}
               savedExercises={savedExercises}
+              onDeleteSaved={handleDeleteSaved}
+              onEditSaved={handleEditSaved}
             />
           )}
 
