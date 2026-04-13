@@ -12,13 +12,19 @@ const start = subWeeks(today, 10)
 const CustomTooltip = ({ active, payload, label, unit = '' }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white border border-stone-100 rounded-xl px-3 py-2.5 shadow-lg text-xs">
-        <div className="text-stone-400 mb-1.5 font-medium">{label}</div>
+      <div style={{
+        background: 'rgba(30,24,18,0.92)',
+        border: '1px solid rgba(255,255,255,0.12)',
+        borderRadius: '12px',
+        padding: '10px 14px',
+        fontSize: '12px',
+      }}>
+        <div style={{ color: 'rgba(255,255,255,0.45)', marginBottom: '6px' }}>{label}</div>
         {payload.map((p, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full" style={{ background: p.color }} />
-            <span className="text-stone-500">{p.name}:</span>
-            <span className="font-medium text-stone-800">
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+            <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: p.color }} />
+            <span style={{ color: 'rgba(255,255,255,0.5)' }}>{p.name}:</span>
+            <span style={{ color: 'rgba(255,255,255,0.88)', fontWeight: 500 }}>
               {typeof p.value === 'number' ? Math.round(p.value) : p.value}{unit}
             </span>
           </div>
@@ -31,19 +37,23 @@ const CustomTooltip = ({ active, payload, label, unit = '' }) => {
 
 function TrendCard({ title, sub, children, legend }) {
   return (
-    <div className="card p-5">
-      <div className="mb-4">
-        <h2 className="text-xs font-medium text-stone-400 uppercase tracking-widest">{title}</h2>
-        {sub && <p className="text-xs text-stone-300 mt-0.5">{sub}</p>}
+    <div className="card" style={{ padding: '18px 20px', marginBottom: '12px' }}>
+      <div style={{ marginBottom: '16px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 500, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          {title}
+        </div>
+        {sub && <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', marginTop: '2px' }}>{sub}</div>}
       </div>
       {children}
       {legend && (
-        <div className="flex flex-wrap gap-4 mt-3">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginTop: '12px' }}>
           {legend.map((item, i) => (
-            <div key={i} className="flex items-center gap-1.5 text-xs text-stone-400">
-              <div className="w-5 h-0.5 rounded" style={{
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>
+              <div style={{
+                width: '20px', height: '1.5px',
                 background: item.dashed ? 'none' : item.color,
-                borderTop: item.dashed ? `2px dashed ${item.color}` : undefined
+                borderTop: item.dashed ? `2px dashed ${item.color}` : undefined,
+                borderRadius: '2px'
               }} />
               {item.label}
             </div>
@@ -54,20 +64,18 @@ function TrendCard({ title, sub, children, legend }) {
   )
 }
 
-function SummaryPill({ label, value, trend, color }) {
-  const colors = {
-    sage: 'bg-sage-50 text-sage-700 border-sage-200',
-    terracotta: 'bg-terracotta-50 text-terracotta-700 border-terracotta-200',
-    stone: 'bg-stone-50 text-stone-700 border-stone-200',
-  }
+function SummaryPill({ label, value, trend, accent }) {
   return (
-    <div className={`rounded-xl border px-3 py-2.5 ${colors[color]}`}>
-      <div className="text-lg font-display font-medium">{value}</div>
-      <div className="text-xs mt-0.5 opacity-75">{label}</div>
-      {trend && <div className="text-xs mt-1 opacity-60">{trend}</div>}
+    <div className="card" style={{ padding: '14px 16px' }}>
+      <div style={{ fontSize: '22px', fontWeight: 500, color: accent || 'rgba(255,255,255,0.88)' }}>{value}</div>
+      <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', marginTop: '3px' }}>{label}</div>
+      {trend && <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.28)', marginTop: '4px' }}>{trend}</div>}
     </div>
   )
 }
+
+const axisStyle = { fontSize: 11, fill: 'rgba(255,255,255,0.28)' }
+const gridColor = 'rgba(255,255,255,0.06)'
 
 export default function TrendsPage() {
   const { logs, loading } = useRange(start, today)
@@ -118,118 +126,120 @@ export default function TrendsPage() {
     : null
 
   if (loading) return (
-    <div className="flex items-center justify-center min-h-64">
-      <div className="w-6 h-6 border-2 border-stone-300 border-t-stone-600 rounded-full animate-spin" />
-    </div>
-  )
-
-  if (logs.length === 0) return (
-    <div className="page-enter">
-      <div className="pt-2 mb-6">
-        <h1 className="text-3xl font-display text-stone-800">Trends</h1>
-      </div>
-      <div className="card p-8 text-center">
-        <div className="text-4xl mb-3">📈</div>
-        <div className="text-stone-600 font-medium mb-1">No data yet</div>
-        <div className="text-sm text-stone-400">Start logging — your trends will appear here after a few days.</div>
-      </div>
+    <div className="bg-trends" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+      <div style={{ width: '24px', height: '24px', border: '2px solid rgba(255,255,255,0.15)', borderTop: '2px solid rgba(255,255,255,0.6)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
     </div>
   )
 
   return (
-    <div className="page-enter space-y-5">
-      <div className="pt-2">
-        <h1 className="text-3xl font-display text-stone-800">Trends</h1>
-        <p className="text-sm text-stone-400 mt-1">Last 10 weeks</p>
+    <div className="bg-trends page-enter" style={{ padding: '52px 20px 32px' }}>
+
+      {/* Header */}
+      <div style={{ marginBottom: '28px' }}>
+        <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)', marginBottom: '4px' }}>Last 10 weeks</div>
+        <h1 className="font-serif-italic" style={{ fontSize: '38px', color: 'rgba(255,255,255,0.92)', margin: 0, lineHeight: 1.1 }}>
+          Trends
+        </h1>
       </div>
 
-      <div className="grid grid-cols-2 gap-2.5">
-        <SummaryPill label="Yoga consistency" value={`${yogaPct}%`} trend="last 30 days" color="sage" />
-        <SummaryPill label="Sunlight consistency" value={`${sunPct}%`} trend="last 30 days" color="sage" />
-        <SummaryPill label="Walk days" value={`${walkPct}%`} trend="last 30 days" color="terracotta" />
-        <SummaryPill label="Workout sessions" value={workoutCount} trend="last 30 days" color="stone" />
+      {/* Summary pills */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '20px' }}>
+        <SummaryPill label="Yoga consistency" value={`${yogaPct}%`} trend="last 30 days" accent="rgba(130,190,130,0.9)" />
+        <SummaryPill label="Sunlight consistency" value={`${sunPct}%`} trend="last 30 days" accent="rgba(210,150,80,0.9)" />
+        <SummaryPill label="Walk days" value={`${walkPct}%`} trend="last 30 days" accent="rgba(180,160,130,0.9)" />
+        <SummaryPill label="Workout sessions" value={workoutCount} trend="last 30 days" accent="rgba(255,255,255,0.88)" />
       </div>
 
-      {weeklyData.length < 2 ? (
-        <div className="card p-6 text-center">
-          <div className="text-stone-400 text-sm">Log a few more days to see your trend lines</div>
+      {logs.length === 0 ? (
+        <div className="card" style={{ padding: '48px 24px', textAlign: 'center' }}>
+          <div style={{ fontSize: '32px', marginBottom: '12px' }}>📈</div>
+          <div style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 500, marginBottom: '6px' }}>No data yet</div>
+          <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.3)' }}>Start logging — trends appear after a few days.</div>
+        </div>
+      ) : weeklyData.length < 2 ? (
+        <div className="card" style={{ padding: '32px 24px', textAlign: 'center' }}>
+          <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.35)' }}>Log a few more days to see trend lines</div>
         </div>
       ) : (
         <>
+          {/* Habit score */}
           <TrendCard title="Overall habit score" sub={scoreTrend}>
             <ResponsiveContainer width="100%" height={180}>
               <AreaChart data={weeklyData}>
                 <defs>
                   <linearGradient id="scoreGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#5fa45f" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#5fa45f" stopOpacity={0} />
+                    <stop offset="5%" stopColor="rgba(130,190,130,0.35)" />
+                    <stop offset="95%" stopColor="rgba(130,190,130,0)" />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f4" vertical={false} />
-                <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#a8a29e' }} axisLine={false} tickLine={false} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: '#a8a29e' }} axisLine={false} tickLine={false} width={32} tickFormatter={v => `${v}%`} />
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
+                <XAxis dataKey="week" tick={axisStyle} axisLine={false} tickLine={false} />
+                <YAxis domain={[0, 100]} tick={axisStyle} axisLine={false} tickLine={false} width={32} tickFormatter={v => `${v}%`} />
                 <Tooltip content={<CustomTooltip unit="%" />} />
-                <ReferenceLine y={75} stroke="#e7e5e4" strokeDasharray="4 2" label={{ value: 'target', position: 'right', fontSize: 10, fill: '#d6d3d1' }} />
-                <Area type="monotone" dataKey="habitScore" name="Habit score" stroke="#5fa45f" strokeWidth={2.5} fill="url(#scoreGrad)" dot={{ r: 3.5, fill: '#5fa45f', strokeWidth: 0 }} activeDot={{ r: 5 }} />
+                <ReferenceLine y={75} stroke="rgba(255,255,255,0.12)" strokeDasharray="4 2" label={{ value: 'target', position: 'right', fontSize: 10, fill: 'rgba(255,255,255,0.2)' }} />
+                <Area type="monotone" dataKey="habitScore" name="Habit score" stroke="rgba(130,190,130,0.85)" strokeWidth={2.5} fill="url(#scoreGrad)" dot={{ r: 3.5, fill: 'rgba(130,190,130,0.85)', strokeWidth: 0 }} activeDot={{ r: 5 }} />
               </AreaChart>
             </ResponsiveContainer>
           </TrendCard>
 
+          {/* Morning routine */}
           <TrendCard
             title="Morning routine"
             sub="Days per week"
             legend={[
-              { label: 'Yoga & breathing', color: '#5fa45f' },
-              { label: 'Sunlight', color: '#e07040', dashed: true },
+              { label: 'Yoga & breathing', color: 'rgba(130,190,130,0.85)' },
+              { label: 'Sunlight', color: 'rgba(210,150,80,0.85)', dashed: true },
             ]}
           >
             <ResponsiveContainer width="100%" height={160}>
               <LineChart data={weeklyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f4" vertical={false} />
-                <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#a8a29e' }} axisLine={false} tickLine={false} />
-                <YAxis domain={[0, 7]} ticks={[0, 2, 4, 7]} tick={{ fontSize: 11, fill: '#a8a29e' }} axisLine={false} tickLine={false} width={20} />
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
+                <XAxis dataKey="week" tick={axisStyle} axisLine={false} tickLine={false} />
+                <YAxis domain={[0, 7]} ticks={[0, 2, 4, 7]} tick={axisStyle} axisLine={false} tickLine={false} width={20} />
                 <Tooltip content={<CustomTooltip unit=" days" />} />
-                <Line type="monotone" dataKey="yoga" name="Yoga" stroke="#5fa45f" strokeWidth={2.5} dot={{ r: 3, fill: '#5fa45f', strokeWidth: 0 }} activeDot={{ r: 5 }} />
-                <Line type="monotone" dataKey="sunlight" name="Sunlight" stroke="#e07040" strokeWidth={2} strokeDasharray="5 3" dot={{ r: 3, fill: '#e07040', strokeWidth: 0 }} activeDot={{ r: 5 }} />
+                <Line type="monotone" dataKey="yoga" name="Yoga" stroke="rgba(130,190,130,0.85)" strokeWidth={2.5} dot={{ r: 3, fill: 'rgba(130,190,130,0.85)', strokeWidth: 0 }} activeDot={{ r: 5 }} />
+                <Line type="monotone" dataKey="sunlight" name="Sunlight" stroke="rgba(210,150,80,0.85)" strokeWidth={2} strokeDasharray="5 3" dot={{ r: 3, fill: 'rgba(210,150,80,0.85)', strokeWidth: 0 }} activeDot={{ r: 5 }} />
               </LineChart>
             </ResponsiveContainer>
           </TrendCard>
 
+          {/* Walks */}
           <TrendCard
             title="Walks"
             sub="Days per week"
             legend={[
-              { label: 'Midday', color: '#78716c' },
-              { label: 'After dinner', color: '#a8a29e', dashed: true },
+              { label: 'Midday', color: 'rgba(180,160,130,0.85)' },
+              { label: 'After dinner', color: 'rgba(180,160,130,0.45)', dashed: true },
             ]}
           >
             <ResponsiveContainer width="100%" height={160}>
               <LineChart data={weeklyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f4" vertical={false} />
-                <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#a8a29e' }} axisLine={false} tickLine={false} />
-                <YAxis domain={[0, 7]} ticks={[0, 2, 4, 7]} tick={{ fontSize: 11, fill: '#a8a29e' }} axisLine={false} tickLine={false} width={20} />
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
+                <XAxis dataKey="week" tick={axisStyle} axisLine={false} tickLine={false} />
+                <YAxis domain={[0, 7]} ticks={[0, 2, 4, 7]} tick={axisStyle} axisLine={false} tickLine={false} width={20} />
                 <Tooltip content={<CustomTooltip unit=" days" />} />
-                <Line type="monotone" dataKey="middayWalk" name="Midday" stroke="#78716c" strokeWidth={2.5} dot={{ r: 3, fill: '#78716c', strokeWidth: 0 }} activeDot={{ r: 5 }} />
-                <Line type="monotone" dataKey="dinnerWalk" name="After dinner" stroke="#a8a29e" strokeWidth={2} strokeDasharray="5 3" dot={{ r: 3, fill: '#a8a29e', strokeWidth: 0 }} activeDot={{ r: 5 }} />
+                <Line type="monotone" dataKey="middayWalk" name="Midday" stroke="rgba(180,160,130,0.85)" strokeWidth={2.5} dot={{ r: 3, fill: 'rgba(180,160,130,0.85)', strokeWidth: 0 }} activeDot={{ r: 5 }} />
+                <Line type="monotone" dataKey="dinnerWalk" name="After dinner" stroke="rgba(180,160,130,0.45)" strokeWidth={2} strokeDasharray="5 3" dot={{ r: 3, fill: 'rgba(180,160,130,0.45)', strokeWidth: 0 }} activeDot={{ r: 5 }} />
               </LineChart>
             </ResponsiveContainer>
           </TrendCard>
 
+          {/* Workouts */}
           <TrendCard title="Workouts completed" sub="Sessions per week · target: 3">
             <ResponsiveContainer width="100%" height={150}>
               <AreaChart data={weeklyData}>
                 <defs>
                   <linearGradient id="workoutGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#292524" stopOpacity={0.08} />
-                    <stop offset="95%" stopColor="#292524" stopOpacity={0} />
+                    <stop offset="5%" stopColor="rgba(255,255,255,0.15)" />
+                    <stop offset="95%" stopColor="rgba(255,255,255,0)" />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f4" vertical={false} />
-                <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#a8a29e' }} axisLine={false} tickLine={false} />
-                <YAxis domain={[0, 3]} ticks={[0, 1, 2, 3]} tick={{ fontSize: 11, fill: '#a8a29e' }} axisLine={false} tickLine={false} width={20} />
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
+                <XAxis dataKey="week" tick={axisStyle} axisLine={false} tickLine={false} />
+                <YAxis domain={[0, 3]} ticks={[0, 1, 2, 3]} tick={axisStyle} axisLine={false} tickLine={false} width={20} />
                 <Tooltip content={<CustomTooltip unit=" sessions" />} />
-                <ReferenceLine y={3} stroke="#e7e5e4" strokeDasharray="4 2" label={{ value: 'goal', position: 'right', fontSize: 10, fill: '#d6d3d1' }} />
-                <Area type="monotone" dataKey="workouts" name="Workouts" stroke="#292524" strokeWidth={2.5} fill="url(#workoutGrad)" dot={{ r: 3.5, fill: '#292524', strokeWidth: 0 }} activeDot={{ r: 5 }} />
+                <ReferenceLine y={3} stroke="rgba(255,255,255,0.12)" strokeDasharray="4 2" label={{ value: 'goal', position: 'right', fontSize: 10, fill: 'rgba(255,255,255,0.2)' }} />
+                <Area type="monotone" dataKey="workouts" name="Workouts" stroke="rgba(255,255,255,0.7)" strokeWidth={2.5} fill="url(#workoutGrad)" dot={{ r: 3.5, fill: 'rgba(255,255,255,0.7)', strokeWidth: 0 }} activeDot={{ r: 5 }} />
               </AreaChart>
             </ResponsiveContainer>
           </TrendCard>
